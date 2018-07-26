@@ -18,6 +18,7 @@ class NotesViewController: UITableViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+      
         
         loadItems()
         
@@ -38,10 +39,15 @@ class NotesViewController: UITableViewController {
     }
    
    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-       
-        
-        
-       arrayItem[indexPath.row].done = !arrayItem[indexPath.row].done
+    
+        arrayItem[indexPath.row].done = !arrayItem[indexPath.row].done
+    
+        //CODE TO DELETE THE CODE
+        //context.delete(arrayItem[indexPath.row])
+        //arrayItem.remove(at: indexPath.row)
+        //saveItems()
+    
+        saveItems()
         
         tableView.deselectRow(at: indexPath, animated: true)
         
@@ -95,7 +101,44 @@ class NotesViewController: UITableViewController {
             print("Error fetching Data \(error)")
         }
         
+        tableView.reloadData()
     }
+    
+    
 
 }
 
+
+extension NotesViewController: UISearchBarDelegate {
+    
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        let request : NSFetchRequest<Data> = Data.fetchRequest()
+        
+        let predicate = NSPredicate(format: "title CONTAINS[cd] %@", searchBar.text!)
+        
+        request.predicate = predicate
+        
+        let sortDescriptor = NSSortDescriptor(key: "title", ascending: true)
+        
+        request.sortDescriptors = [sortDescriptor]
+        
+        do {
+            arrayItem = try context.fetch(request)
+        } catch {
+            print("Error fetching Data \(error)")
+        }
+        
+        tableView.reloadData()
+    }
+    
+    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+        if searchBar.text?.count == 0 {
+            loadItems()
+            
+            DispatchQueue.main.async {
+                searchBar.resignFirstResponder()
+            }
+            
+        }
+    }
+}
