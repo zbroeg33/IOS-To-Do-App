@@ -13,6 +13,12 @@ class NotesViewController: UITableViewController {
 
     var arrayItem = [Data]()
     
+    var selectedCategory : Category? {
+        didSet{
+            loadItems()
+        }
+    }
+    
     let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     
     
@@ -20,7 +26,7 @@ class NotesViewController: UITableViewController {
         super.viewDidLoad()
       
         
-        loadItems()
+       
         
     }
 
@@ -64,7 +70,7 @@ class NotesViewController: UITableViewController {
             let newItem = Data(context: self.context)
             newItem.title = textField.text!
             newItem.done = false
-            //newItem.parentCategory = self.selectedCategory
+            newItem.parentCategory = self.selectedCategory
             self.arrayItem.append(newItem)
             
            
@@ -93,18 +99,25 @@ class NotesViewController: UITableViewController {
         self.tableView.reloadData()
     }
     
-    func loadItems() {
-        let request : NSFetchRequest<Data> = Data.fetchRequest()
+    func loadItems(with request: NSFetchRequest<Data> = Data.fetchRequest(), predicate: NSPredicate? = nil) {
+        
+        let categoryPredicate = NSPredicate(format: "parentCategory.name MATCHES %@", selectedCategory!.name!)
+        
+        if let additionalPredicate = predicate {
+            request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [categoryPredicate, additionalPredicate])
+        }
+        else {
+            request.predicate = categoryPredicate
+        }
+        
         do {
-         arrayItem = try context.fetch(request)
+            arrayItem = try context.fetch(request)
         } catch {
-            print("Error fetching Data \(error)")
+            print("Error fetching data \(error)")
         }
         
         tableView.reloadData()
     }
-    
-    
 
 }
 
@@ -112,23 +125,13 @@ class NotesViewController: UITableViewController {
 extension NotesViewController: UISearchBarDelegate {
     
     func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
-        let request : NSFetchRequest<Data> = Data.fetchRequest()
+        let request: NSFetchRequest<Data> = Data.fetchRequest()
         
         let predicate = NSPredicate(format: "title CONTAINS[cd] %@", searchBar.text!)
         
-        request.predicate = predicate
+        request.sortDescriptors = [NSSortDescriptor(key: "title", ascending: true)]
         
-        let sortDescriptor = NSSortDescriptor(key: "title", ascending: true)
-        
-        request.sortDescriptors = [sortDescriptor]
-        
-        do {
-            arrayItem = try context.fetch(request)
-        } catch {
-            print("Error fetching Data \(error)")
-        }
-        
-        tableView.reloadData()
+        loadItems(with: request, predicate: predicate)
     }
     
     func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
@@ -139,6 +142,9 @@ extension NotesViewController: UISearchBarDelegate {
                 searchBar.resignFirstResponder()
             }
             
+        } else {
+            searchBarSearchButtonClicked(searchBar)
         }
+        
     }
 }
